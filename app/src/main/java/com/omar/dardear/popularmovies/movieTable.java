@@ -26,5 +26,4 @@ public class movieTable {
     public String release_date;
 
 
-
 }

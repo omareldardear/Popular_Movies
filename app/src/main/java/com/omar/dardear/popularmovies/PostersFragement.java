@@ -96,7 +96,9 @@ public class PostersFragement extends Fragment {
                         .putExtra("Poster", MoviesData.get(position).getPoster_attr())
                         .putExtra("Over", MoviesData.get(position).getOverview())
                         .putExtra("Rate", MoviesData.get(position).getVote_average())
-                        .putExtra("Date", MoviesData.get(position).getRelease_date());
+                        .putExtra("Date", MoviesData.get(position).getRelease_date())
+                        .putExtra("Movie_ID",MoviesData.get(position).getMovie_ID());
+
                 startActivity(intent);
             }
         });
@@ -155,8 +157,9 @@ public class PostersFragement extends Fragment {
                 String overview = movieTemp.getString("overview");
                 String vote_average = Double.toString(movieTemp.getDouble("vote_average"));
                 String release_date = movieTemp.getString("release_date");
+                String movie_id=movieTemp.getString("id");
 
-                resultObject[i] = new Movie(original_title, poster_attr, overview, vote_average, release_date);
+                resultObject[i] = new Movie(original_title, poster_attr, overview, vote_average, release_date,movie_id);
 
 
 
