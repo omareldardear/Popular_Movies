@@ -11,6 +11,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -75,6 +76,7 @@ public class DetailActivity extends ActionBarActivity {
 
         private ArrayList<Trailer> TrailersData=new ArrayList<Trailer>();
         String ID;
+        private ArrayAdapter<String> TrailersAdapter;
 
         public PlaceholderFragment() {
         }
@@ -82,6 +84,8 @@ public class DetailActivity extends ActionBarActivity {
         @Override
         public void onStart() {
             super.onStart();
+            FetchTrailersTask TrailersTask = new FetchTrailersTask();
+            TrailersTask.execute(ID);
 
         }
 
@@ -98,8 +102,9 @@ public class DetailActivity extends ActionBarActivity {
                     && intent.hasExtra("Date")
                     && intent.hasExtra("Movie_ID")) {
 
-                FetchTrailersTask TrailersTask = new FetchTrailersTask();
-                TrailersTask.execute(intent.getStringExtra("Movie_ID"));
+                ID=intent.getStringExtra("Movie_ID");
+
+
 
                 ImageView img = (ImageView) rootView.findViewById(R.id.imageView);
                 Picasso.with(getActivity())
@@ -118,6 +123,11 @@ public class DetailActivity extends ActionBarActivity {
 
                 ((TextView) rootView.findViewById(R.id.date))
                         .setText(intent.getStringExtra("Date").substring(0, 4));
+
+                TrailersAdapter=new ArrayAdapter<String>(getActivity(),R.layout.trailer_item,R.id.trailerName);
+                ExpandableHeightListView TrailersList =(ExpandableHeightListView) rootView.findViewById(R.id.TrailersList);
+                TrailersList.setExpanded(true);
+                TrailersList.setAdapter(TrailersAdapter);
             }
 
 
@@ -252,10 +262,13 @@ public class DetailActivity extends ActionBarActivity {
 
 
                     TrailersData.clear();
+                    TrailersAdapter.clear();
 
                     for(Trailer TrailerTemp : Trailers) {
 
                         TrailersData.add(TrailerTemp);
+                        TrailersAdapter.add(TrailerTemp.getName());
+
 
                     }
 

@@ -1,5 +1,6 @@
 package com.omar.dardear.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,6 +21,8 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
+
+import com.omar.dardear.popularmovies.data.MoviesContract;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -160,6 +163,18 @@ public class PostersFragement extends Fragment {
                 String movie_id=movieTemp.getString("id");
 
                 resultObject[i] = new Movie(original_title, poster_attr, overview, vote_average, release_date,movie_id);
+                ContentValues MovieValue = new ContentValues();
+
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_TITLE,original_title);
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_POSTER_ATTR,poster_attr);
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_OVERVIEW,overview);
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,movieTemp.getDouble("vote_average"));
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE,release_date);
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID,movieTemp.getDouble("id"));
+
+                Uri ins =getActivity().getContentResolver().insert(MoviesContract.MoviesEntry.CONTENT_URI,MovieValue);
+                Log.v("inserted", " URI " + ins.toString());
+
 
 
 

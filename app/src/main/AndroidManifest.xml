@@ -37,8 +37,8 @@
                 android:value="MainActivity" />
         </activity>
         <provider
-            android:authorities="com.omar.dardear.popularmovies"
-            android:name="com.omar.dardear.popularmovies.MovieProvider"/>
+            android:authorities="com.omar.dardear.popularmovies.data"
+            android:name="com.omar.dardear.popularmovies.data.MoviesProvider"/>
     </application>
 
 </manifest>
