@@ -6,10 +6,20 @@ package com.omar.dardear.popularmovies;
 public class Trailer {
     private String name;
     private String link;
+    private String key;
 
-    public Trailer(String name, String link) {
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public Trailer(String name, String key) {
         this.name = name;
-        this.link ="https://www.youtube.com/watch?v="+link;
+        this.link ="https://www.youtube.com/watch?v="+key;
+        this.key=key;
     }
 
     public String getName() {

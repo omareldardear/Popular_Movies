@@ -1,16 +1,15 @@
 package com.omar.dardear.popularmovies;
 
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,8 +20,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
-
-import com.omar.dardear.popularmovies.data.MoviesContract;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,13 +36,18 @@ import java.util.ArrayList;
 /**
  * Created by Omar on 9/5/2015.
  */
-public class PostersFragement extends Fragment {
-    public PostersFragement() {
+public class PostersFragement extends Fragment  implements LoaderManager.LoaderCallbacks<Cursor> {
 
-    }
 
     private PicassoAdapter adapter;
     private ArrayList<Movie> MoviesData=new ArrayList<Movie>();
+
+
+    // LOADER
+
+
+    public PostersFragement() {
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,9 +62,6 @@ public class PostersFragement extends Fragment {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
             updateMovies();
@@ -70,7 +69,6 @@ public class PostersFragement extends Fragment {
         }
         return super.onOptionsItemSelected(item);
     }
-
 
 
     @Override
@@ -113,19 +111,25 @@ public class PostersFragement extends Fragment {
     }
     private void updateMovies()
     {
-        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
-        if (ni==null)
-        {
+//        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+//        NetworkInfo ni = cm.getActiveNetworkInfo();
+//        if (ni==null)
+//        {
+//
+//        }
+//        else {
+//            FetchMoviesTask weatherTask = new FetchMoviesTask();
+//            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+//            String sort = prefs.getString(getString(R.string.pref_sort_key),
+//                    getString(R.string.pref_sort_pop));
+//            weatherTask.execute(sort);
+//        }
 
-        }
-        else {
-            FetchMoviesTask weatherTask = new FetchMoviesTask();
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String sort = prefs.getString(getString(R.string.pref_sort_key),
-                    getString(R.string.pref_sort_pop));
-            weatherTask.execute(sort);
-        }
+        FetchMoviesTask weatherTask = new FetchMoviesTask();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sort = prefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_pop));
+        weatherTask.execute(sort);
 
     }
 
@@ -136,6 +140,20 @@ public class PostersFragement extends Fragment {
         updateMovies();
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+    }
 
 
     public class FetchMoviesTask extends AsyncTask<String, Void, Movie[]> {
@@ -150,7 +168,8 @@ public class PostersFragement extends Fragment {
             JSONObject MoviesJson = new JSONObject(MovieJsonStr);
             JSONArray ResultArray = MoviesJson.getJSONArray("results");
 
-            Movie[] resultObject = new Movie[ResultArray.length()];
+            Movie[] resultTempObject = new Movie[ResultArray.length()];
+            int s=0;
 
             for (int i = 0; i < ResultArray.length(); i++) {
 
@@ -162,23 +181,36 @@ public class PostersFragement extends Fragment {
                 String release_date = movieTemp.getString("release_date");
                 String movie_id=movieTemp.getString("id");
 
-                resultObject[i] = new Movie(original_title, poster_attr, overview, vote_average, release_date,movie_id);
-                ContentValues MovieValue = new ContentValues();
+                if (!poster_attr.equals("null"))
+                {
+                    resultTempObject[s] = new Movie(original_title, poster_attr, overview, vote_average, release_date,movie_id);
+                    s++;
+                }
 
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_TITLE,original_title);
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_POSTER_ATTR,poster_attr);
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_OVERVIEW,overview);
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,movieTemp.getDouble("vote_average"));
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE,release_date);
-                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID,movieTemp.getDouble("id"));
-
-                Uri ins =getActivity().getContentResolver().insert(MoviesContract.MoviesEntry.CONTENT_URI,MovieValue);
-                Log.v("inserted", " URI " + ins.toString());
-
-
-
+//                ContentValues MovieValue = new ContentValues();
+//
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_TITLE,original_title);
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_POSTER_ATTR,poster_attr);
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_OVERVIEW,overview);
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,movieTemp.getDouble("vote_average"));
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE,release_date);
+//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID,movieTemp.getDouble("id"));
+//
+//                Uri ins =getActivity().getContentResolver().insert(MoviesContract.MoviesEntry.CONTENT_URI,MovieValue);
+//                Log.v("inserted", " URI " + ins.toString());
+            }
+            Movie[] resultObject = new Movie[s];
+            for (int i = 0; i < s; i++) {
+                resultObject[i] = new Movie(resultTempObject[i].getOriginal_title()
+                        ,resultTempObject[i].getPoster_attr()
+                        ,resultTempObject[i].getOverview()
+                        ,resultTempObject[i].getVote_average()
+                        ,resultTempObject[i].getRelease_date()
+                        ,resultTempObject[i].getMovie_ID());
 
             }
+
+
             return resultObject;
 
         }
@@ -203,11 +235,12 @@ public class PostersFragement extends Fragment {
             String ApiKeyQuery="api_key";
 
 
+
             String MyKey="9d5b10665b26ce8aadae42604e92f82a";
 
 
             Uri builtUri = Uri.parse("http://api.themoviedb.org/3/discover/movie?").buildUpon()
-                    .appendQueryParameter(SortingQuery, strings[0] )
+                    .appendQueryParameter(SortingQuery, strings[0])
                     .appendQueryParameter(AdultQuery, "no")
                     .appendQueryParameter(ApiKeyQuery, MyKey)
                     .build();

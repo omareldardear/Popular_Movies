@@ -1,6 +1,8 @@
 package com.omar.dardear.popularmovies;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -11,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -75,8 +78,10 @@ public class DetailActivity extends ActionBarActivity {
     public static class PlaceholderFragment extends Fragment {
 
         private ArrayList<Trailer> TrailersData=new ArrayList<Trailer>();
+        private ArrayList<Review> ReviewsData=new ArrayList<Review>();
         String ID;
         private ArrayAdapter<String> TrailersAdapter;
+        private ArrayAdapter<String> ReviewsAdapter;
 
         public PlaceholderFragment() {
         }
@@ -86,6 +91,8 @@ public class DetailActivity extends ActionBarActivity {
             super.onStart();
             FetchTrailersTask TrailersTask = new FetchTrailersTask();
             TrailersTask.execute(ID);
+            FetchReviewsTask ReviewTask = new FetchReviewsTask();
+            ReviewTask.execute(ID);
 
         }
 
@@ -128,6 +135,32 @@ public class DetailActivity extends ActionBarActivity {
                 ExpandableHeightListView TrailersList =(ExpandableHeightListView) rootView.findViewById(R.id.TrailersList);
                 TrailersList.setExpanded(true);
                 TrailersList.setAdapter(TrailersAdapter);
+
+                TrailersList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+
+
+                        try{
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + TrailersData.get(position).getKey()));
+                            startActivity(intent);
+                        }catch (ActivityNotFoundException ex){
+                            Intent intent=new Intent(Intent.ACTION_VIEW,
+                                    Uri.parse(TrailersData.get(position).getLink()));
+                            startActivity(intent);
+                        }
+//                        Intent intent=new Intent(Intent.ACTION_VIEW,
+//                                Uri.parse(TrailersData.get(position).getLink()));
+//                        startActivity(intent);
+
+                    }
+                });
+
+
+                ReviewsAdapter=new ArrayAdapter<String>(getActivity(),R.layout.review_item,R.id.reviewName);
+                ExpandableHeightListView ReviewsList =(ExpandableHeightListView) rootView.findViewById(R.id.ReviewsList);
+                ReviewsList.setExpanded(true);
+                ReviewsList.setAdapter(ReviewsAdapter);
             }
 
 
@@ -147,20 +180,30 @@ public class DetailActivity extends ActionBarActivity {
                 JSONObject MovieJson = new JSONObject(TrailersJsonStr);
                 JSONArray ResultArray = MovieJson.getJSONArray("results");
 
-                Trailer[] resultObject = new Trailer[ResultArray.length()];
-
+                Trailer[] resultTempObject = new Trailer[ResultArray.length()];
+                int s=0;
                 for (int i = 0; i < ResultArray.length(); i++) {
 
                     JSONObject TrailersTemp = ResultArray.getJSONObject(i);
                     String site = TrailersTemp.getString("site");
+                    String Type= TrailersTemp.getString("type");
 
-                    if (site.equals("YouTube"))
+
+                    if (site.equals("YouTube")&& Type.equals("Trailer"))
                     {
-                        resultObject[i]=new Trailer(TrailersTemp.getString("name"),TrailersTemp.getString("key"));
-
-                        Log.v("LINKTAG", "TEST     "+resultObject[i].getName()+"    "+resultObject[i].getLink());
+                        resultTempObject[s]=new Trailer(TrailersTemp.getString("name"),TrailersTemp.getString("key"));
+                        s++;
 
                     }
+
+
+                }
+                Trailer[] resultObject = new Trailer[s];
+                for (int i = 0; i <s; i++) {
+
+                    resultObject[i]=new Trailer(resultTempObject[i].getName(),resultTempObject[i].getKey());
+
+
                 }
                 return resultObject;
 
@@ -268,6 +311,146 @@ public class DetailActivity extends ActionBarActivity {
 
                         TrailersData.add(TrailerTemp);
                         TrailersAdapter.add(TrailerTemp.getName());
+
+
+                    }
+
+                }
+
+
+            }
+        }
+        public class FetchReviewsTask extends AsyncTask<String, Void, Review[]> {
+
+
+            private final String LOG_TAG = FetchReviewsTask.class.getSimpleName();
+
+            private Review[] getDataFromJson(String TrailersJsonStr)
+                    throws JSONException {
+
+
+                JSONObject MovieJson = new JSONObject(TrailersJsonStr);
+                JSONArray ResultArray = MovieJson.getJSONArray("results");
+
+                Review[] resultObject = new Review[ResultArray.length()];
+
+                for (int i = 0; i < ResultArray.length(); i++) {
+
+                    JSONObject ReviewsTemp = ResultArray.getJSONObject(i);
+                    String author = ReviewsTemp.getString("author");
+                    String content =ReviewsTemp.getString("content");
+
+                    resultObject[i]=new Review(author,content);
+
+
+
+                }
+                return resultObject;
+
+            }
+
+            @Override
+            protected Review[] doInBackground(String... strings) {
+
+                if (strings.length == 0) {
+                    return null;
+                }
+
+                HttpURLConnection urlConnection = null;
+                BufferedReader reader = null;
+                String MovieJsonStr = null;
+
+
+                String ReviewsUrl =
+                        "http://api.themoviedb.org/3/movie/" + strings[0] + "/reviews?api_key=9d5b10665b26ce8aadae42604e92f82a";
+
+//                String SortingQuery="sort_by";
+//                String AdultQuery="include_adult";
+//                String ApiKeyQuery="api_key";
+//
+//
+//                String MyKey="9d5b10665b26ce8aadae42604e92f82a";
+//
+//
+//                Uri builtUri = Uri.parse("http://api.themoviedb.org/3/discover/movie?").buildUpon()
+//                        .appendQueryParameter(SortingQuery, strings[0] )
+//                        .appendQueryParameter(AdultQuery, "no")
+//                        .appendQueryParameter(ApiKeyQuery, MyKey)
+//                        .build();
+
+                try {
+
+                    URL url = new URL(ReviewsUrl);
+                    Log.v(LOG_TAG, "Built URI " + ReviewsUrl);
+
+                    Log.v("LINK", "Built URI " + ReviewsUrl);
+
+                    urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setRequestMethod("GET");
+                    urlConnection.connect();
+
+
+                    InputStream inputStream = urlConnection.getInputStream();
+                    StringBuffer buffer = new StringBuffer();
+                    if (inputStream == null) {
+                        return null;
+                    }
+                    reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        buffer.append(line + "\n");
+                    }
+
+                    if (buffer.length() == 0) {
+                        return null;
+                    }
+                    MovieJsonStr = buffer.toString();
+                    Log.v(LOG_TAG, "Reviews string: " + MovieJsonStr);
+
+
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "Error ", e);
+                    return null;
+                } finally {
+                    if (urlConnection != null) {
+                        urlConnection.disconnect();
+                    }
+                    if (reader != null) {
+                        try {
+                            reader.close();
+                        } catch (final IOException e) {
+                            Log.e(LOG_TAG, "Error closing stream", e);
+                        }
+                    }
+                }
+
+                try {
+                    return getDataFromJson(MovieJsonStr);
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, e.getMessage(), e);
+                    e.printStackTrace();
+                }
+
+                // This will only happen if there was an error getting or parsing the forecast.
+                return null;
+            }
+
+
+            @Override
+            protected void onPostExecute(Review[] Reviews) {
+
+
+                if (Reviews != null) {
+
+
+                    ReviewsData.clear();
+                    ReviewsAdapter.clear();
+
+                    for(Review ReviewTemp : Reviews) {
+
+                        ReviewsData.add(ReviewTemp);
+                        ReviewsAdapter.add(ReviewTemp.getAuthor()+":\n" +ReviewTemp.getContent());
 
 
                     }
