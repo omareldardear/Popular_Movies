@@ -29,41 +29,38 @@ public class MoviesOpenHelper extends SQLiteOpenHelper {
 
         final String SQL_CREATE_MOVIES_TABLE = "CREATE TABLE " + MoviesEntry.TABLE_NAME + " (" +
                 MoviesEntry._ID + " INTEGER PRIMARY KEY ," +
-                MoviesEntry.COLUMN_MOVIE_ID + " DOUBLE NOT NULL, " +
-                MoviesEntry.COLUMN_TITLE+" VARCHAR, "+
-                MoviesEntry.COLUMN_VOTE_AVERAGE+" FLOAT, "+
+                MoviesEntry.COLUMN_MOVIE_ID + " DOUBLE UNIQUE NOT NULL, " +
+                MoviesEntry.COLUMN_TITLE + " VARCHAR, " +
+                MoviesEntry.COLUMN_VOTE_AVERAGE + " FLOAT, " +
                 MoviesEntry.COLUMN_OVERVIEW + " VARCHAR, " +
                 MoviesEntry.COLUMN_POSTER_ATTR + " VARCHAR, " +
-                MoviesEntry.COLUMN_RUN_TIME+"INTEGER,"+
-                MoviesEntry.COLUMN_RELEASE_DATE + " VARCHAR " +
+                MoviesEntry.COLUMN_RUN_TIME + " INTEGER, " +
+                MoviesEntry.COLUMN_RELEASE_DATE + " VARCHAR, " +
+                MoviesEntry.COLUMN_FAVOURITE + " INTEGER NOT NULL DEFAULT 0, " +
+                MoviesEntry.COLUMN_SORT_INDEX + " INTEGER NOT NULL DEFAULT 0 " +
                 " );";
-
-
-
-
 
 
         final String SQL_CREATE_TRAILERS_TABLE = "CREATE TABLE " + TrailersEntry.TABLE_NAME + " (" +
                 TrailersEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 TrailersEntry.COLUMN_NAME + " VARCHAR NOT NULL, " +
                 TrailersEntry.COLUMN_LINK + " VARCHAR NOT NULL, " +
-                TrailersEntry.COLUMN_MOVIE_ID+" INTEGER NOT NULL, "+
+                TrailersEntry.COLUMN_MOVIE_ID + " INTEGER NOT NULL, " +
 
                 " FOREIGN KEY (" + TrailersEntry.COLUMN_MOVIE_ID + ") REFERENCES " +
-                MoviesEntry.TABLE_NAME + " (" + MoviesEntry._ID + ")); " ;
+                MoviesEntry.TABLE_NAME + " (" + MoviesEntry._ID + ")); ";
 
 
         final String SQL_CREATE_REVIEWS_TABLE = "CREATE TABLE " + ReviewsEntry.TABLE_NAME + " (" +
                 ReviewsEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 ReviewsEntry.COLUMN_AUTHOR + " VARCHAR NOT NULL, " +
                 ReviewsEntry.COLUMN_CONTENT + " VARCHAR NOT NULL, " +
-                ReviewsEntry.COLUMN_URL+ " VARCHAR NOT NULL, " +
-                ReviewsEntry.COLUMN_MOVIE_ID+" INTEGER NOT NULL, "+
+                ReviewsEntry.COLUMN_URL + " VARCHAR NOT NULL, " +
+                ReviewsEntry.COLUMN_MOVIE_ID + " INTEGER NOT NULL, " +
 
 
                 " FOREIGN KEY (" + ReviewsEntry.COLUMN_MOVIE_ID + ") REFERENCES " +
-                MoviesEntry.TABLE_NAME + " (" + ReviewsEntry._ID + ")); " ;
-
+                MoviesEntry.TABLE_NAME + " (" + ReviewsEntry._ID + ")); ";
 
 
         sqLiteDatabase.execSQL(SQL_CREATE_MOVIES_TABLE);
@@ -77,8 +74,6 @@ public class MoviesOpenHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + MoviesEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TrailersEntry.TABLE_NAME);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + ReviewsEntry.TABLE_NAME);
-
-
         onCreate(sqLiteDatabase);
     }
 }

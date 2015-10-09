@@ -29,10 +29,7 @@ public class MoviesProvider extends ContentProvider {
     private static final SQLiteQueryBuilder sReviewByMovieID;
 
 
-
-
-
-    static{
+    static {
         sTrailerByMovieID = new SQLiteQueryBuilder();
 
         sTrailerByMovieID.setTables(
@@ -44,7 +41,7 @@ public class MoviesProvider extends ContentProvider {
                         "." + MoviesContract.MoviesEntry._ID);
     }
 
-    static{
+    static {
         sReviewByMovieID = new SQLiteQueryBuilder();
 
         sReviewByMovieID.setTables(
@@ -56,14 +53,17 @@ public class MoviesProvider extends ContentProvider {
                         "." + MoviesContract.MoviesEntry._ID);
     }
 
-    //Movies._ID
-    private static final String sMovieIDSelection =
-            MoviesContract.MoviesEntry.TABLE_NAME+
+
+    public static final String sMovieIDSelection =
+            MoviesContract.MoviesEntry.TABLE_NAME +
                     "." + MoviesContract.MoviesEntry._ID + " = ? ";
 
-    //_ID
-    private static final String sItemMovieIDSelection =
-             MoviesContract.MoviesEntry._ID + " = ? ";
+
+    public static final String sItemMovieIDSelection =
+            MoviesContract.MoviesEntry.COLUMN_MOVIE_ID + " = ? ";
+
+    public static final String sItemFavouriteSelection =
+            MoviesContract.MoviesEntry.COLUMN_FAVOURITE + " = ? ";
 
 
     static UriMatcher buildUriMatcher() {
@@ -73,12 +73,12 @@ public class MoviesProvider extends ContentProvider {
 
         // For each type of URI you want to add, create a corresponding code.
         matcher.addURI(authority, MoviesContract.PATH_MOVIES, MOVIES);
-        matcher.addURI(authority, MoviesContract.PATH_MOVIES + "/#",MOVIE_WITH_ID);
+        matcher.addURI(authority, MoviesContract.PATH_MOVIES + "/#", MOVIE_WITH_ID);
 
-        matcher.addURI(authority, MoviesContract.PATH_TRAILERS , TRAILERS);
+        matcher.addURI(authority, MoviesContract.PATH_TRAILERS, TRAILERS);
         matcher.addURI(authority, MoviesContract.PATH_TRAILERS + "/#", TRAILER_WITH_MOVIE);
 
-        matcher.addURI(authority, MoviesContract.PATH_REVIEWS , REVIEWS);
+        matcher.addURI(authority, MoviesContract.PATH_REVIEWS, REVIEWS);
         matcher.addURI(authority, MoviesContract.PATH_REVIEWS + "/#", REVIEW_WITH_MOVIE);
 
         return matcher;
@@ -96,8 +96,7 @@ public class MoviesProvider extends ContentProvider {
         Cursor retCursor;
         switch (sUriMatcher.match(uri)) {
             // "weather/*/*"
-            case MOVIES:
-            {
+            case MOVIES: {
                 retCursor = mOpenHelper.getReadableDatabase().query(
                         MoviesContract.MoviesEntry.TABLE_NAME,
                         projection,
@@ -111,7 +110,7 @@ public class MoviesProvider extends ContentProvider {
             }
             // "weather/*"
             case MOVIE_WITH_ID: {
-                selectionArgs = new String[]{Long.toString( MoviesContract.MoviesEntry.getMovieIDFromUri(uri))};
+                selectionArgs = new String[]{Long.toString(MoviesContract.MoviesEntry.getMovieIDFromUri(uri))};
                 retCursor = mOpenHelper.getReadableDatabase().query(
                         MoviesContract.MoviesEntry.TABLE_NAME,
                         projection,
@@ -138,7 +137,7 @@ public class MoviesProvider extends ContentProvider {
             }
             // "location"
             case TRAILER_WITH_MOVIE: {
-                selectionArgs = new String[]{Long.toString( MoviesContract.TrailersEntry.getMovieIDFromUri(uri))};
+                selectionArgs = new String[]{Long.toString(MoviesContract.TrailersEntry.getMovieIDFromUri(uri))};
                 retCursor = sTrailerByMovieID.query(mOpenHelper.getReadableDatabase(),
                         projection,
                         sMovieIDSelection,
@@ -165,7 +164,7 @@ public class MoviesProvider extends ContentProvider {
             }
             // "location"
             case REVIEW_WITH_MOVIE: {
-                selectionArgs = new String[]{Long.toString( MoviesContract.ReviewsEntry.getMovieIDFromUri(uri))};
+                selectionArgs = new String[]{Long.toString(MoviesContract.ReviewsEntry.getMovieIDFromUri(uri))};
                 retCursor = sReviewByMovieID.query(mOpenHelper.getReadableDatabase(),
                         projection,
                         sMovieIDSelection,
@@ -215,7 +214,7 @@ public class MoviesProvider extends ContentProvider {
         switch (match) {
             case MOVIES: {
                 long _id = db.insert(MoviesContract.MoviesEntry.TABLE_NAME, null, values);
-                if ( _id > 0 )
+                if (_id > 0)
                     returnUri = MoviesContract.MoviesEntry.buildMovieUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
@@ -223,7 +222,7 @@ public class MoviesProvider extends ContentProvider {
             }
             case TRAILERS: {
                 long _id = db.insert(MoviesContract.TrailersEntry.TABLE_NAME, null, values);
-                if ( _id > 0 )
+                if (_id > 0)
                     returnUri = MoviesContract.TrailersEntry.buildTrailerUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
@@ -231,7 +230,7 @@ public class MoviesProvider extends ContentProvider {
             }
             case REVIEWS: {
                 long _id = db.insert(MoviesContract.ReviewsEntry.TABLE_NAME, null, values);
-                if ( _id > 0 )
+                if (_id > 0)
                     returnUri = MoviesContract.ReviewsEntry.buildReviewUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
@@ -245,12 +244,59 @@ public class MoviesProvider extends ContentProvider {
     }
 
     @Override
-    public int delete(Uri uri, String s, String[] strings) {
-        return 0;
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
+        final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        final int match = sUriMatcher.match(uri);
+        int rowsDeleted;
+        // this makes delete all rows return the number of rows deleted
+        if (null == selection) selection = "1";
+        switch (match) {
+            case MOVIES:
+                selectionArgs=new String[]{"0"};
+                rowsDeleted = db.delete(
+                        MoviesContract.MoviesEntry.TABLE_NAME, sItemFavouriteSelection, selectionArgs);
+                break;
+            case MOVIE_WITH_ID:
+                selectionArgs = new String[]{Long.toString(MoviesContract.MoviesEntry.getMovieIDFromUri(uri))};
+                rowsDeleted = db.delete(
+                        MoviesContract.MoviesEntry.TABLE_NAME, sItemMovieIDSelection, selectionArgs);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        // Because a null deletes all rows
+        if (rowsDeleted != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return rowsDeleted;
+
+
     }
 
     @Override
-    public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
-        return 0;
+    public int update(Uri uri, ContentValues contentValues, String selection, String[] selectionArgs) {
+        final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        final int match = sUriMatcher.match(uri);
+        int rowsUpdated;
+
+        switch (match) {
+            case MOVIES:
+                rowsUpdated = db.update(MoviesContract.MoviesEntry.TABLE_NAME, contentValues, selection,
+                        selectionArgs);
+                break;
+            case MOVIE_WITH_ID:
+                selectionArgs = new String[]{Long.toString(MoviesContract.MoviesEntry.getMovieIDFromUri(uri))};
+                rowsUpdated = db.update(MoviesContract.MoviesEntry.TABLE_NAME,
+                        contentValues,
+                        sItemMovieIDSelection,
+                        selectionArgs);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        if (rowsUpdated != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        return rowsUpdated;
     }
 }

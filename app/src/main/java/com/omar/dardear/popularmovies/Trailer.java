@@ -35,6 +35,6 @@ public class Trailer {
     }
 
     public void setLink(String link) {
-        this.link ="https://www.youtube.com/watch?v"+link;
+        this.link ="https://www.youtube.com/watch?v="+link;
     }
 }

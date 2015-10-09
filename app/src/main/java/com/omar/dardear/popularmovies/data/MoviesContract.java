@@ -39,6 +39,9 @@ public class MoviesContract {
         public static final String COLUMN_RELEASE_DATE = "release_date";
         public static final String COLUMN_VOTE_AVERAGE = "vote_average";
         public static final String COLUMN_RUN_TIME = "run_time";
+        public static final String COLUMN_FAVOURITE = "favourite";
+        public static final String COLUMN_SORT_INDEX = "sort_index";
+
 
         public static Uri buildMovieUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);

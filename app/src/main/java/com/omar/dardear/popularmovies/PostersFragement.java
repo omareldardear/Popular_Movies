@@ -1,16 +1,19 @@
 package com.omar.dardear.popularmovies;
 
-import android.content.Intent;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -21,38 +24,64 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
+import com.omar.dardear.popularmovies.data.MoviesContract;
+import com.omar.dardear.popularmovies.data.MoviesProvider;
 
 /**
  * Created by Omar on 9/5/2015.
  */
-public class PostersFragement extends Fragment  implements LoaderManager.LoaderCallbacks<Cursor> {
+public class PostersFragement extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
 
-    private PicassoAdapter adapter;
-    private ArrayList<Movie> MoviesData=new ArrayList<Movie>();
+    PicassoCursorAdapter PicassoCAdapter;
+    GridView gridView;
+    private static final String LIST_STATE = "listState";
+    private Parcelable mListState = null;
+
+    private static final String SELECTED_KEY = "selected_position";
+
+    private int mPosition = GridView.INVALID_POSITION;
+
+    private static final int MOVIES_LOADER = 0;
+    private static final String[] MOVIES_COLUMNS = {
+
+            MoviesContract.MoviesEntry.TABLE_NAME + "." + MoviesContract.MoviesEntry._ID,
+            MoviesContract.MoviesEntry.COLUMN_MOVIE_ID,
+            MoviesContract.MoviesEntry.COLUMN_TITLE,
+            MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,
+            MoviesContract.MoviesEntry.COLUMN_OVERVIEW,
+            MoviesContract.MoviesEntry.COLUMN_POSTER_ATTR,
+            MoviesContract.MoviesEntry.COLUMN_RUN_TIME,
+            MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE,
+            MoviesContract.MoviesEntry.COLUMN_FAVOURITE,
+            MoviesContract.MoviesEntry.COLUMN_SORT_INDEX
+    };
 
 
-    // LOADER
+    static final int COL_ID = 0;
+    static final int COL_MOVIE_ID = 1;
+    static final int COL_TITLE = 2;
+    static final int COL_VOTE_AVERAGE = 3;
+    static final int COL_OVERVIEW = 4;
+    static final int COL_POSTER_ATTR = 5;
+    static final int COL_RUN_TIME = 6;
+    static final int COL_RELEASE_DATE = 7;
 
 
     public PostersFragement() {
+    }
+
+    public interface Callback {
+
+        public void onItemSelected(Uri dateUri);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        updateMovies();
+
     }
 
     @Override
@@ -70,258 +99,129 @@ public class PostersFragement extends Fragment  implements LoaderManager.LoaderC
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(MOVIES_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        GridView gridView = (GridView) rootView.findViewById(R.id.GridView_Imgs);
 
-        ArrayList<String> urls = new ArrayList<String>();
+        PicassoCAdapter = new PicassoCursorAdapter(getActivity(), null, 0);
 
-
-
-
-         adapter = new PicassoAdapter(getActivity(), urls);
-
-        gridView.setAdapter(adapter);
-
+        gridView = (GridView) rootView.findViewById(R.id.GridView_Imgs);
+        gridView.setAdapter(PicassoCAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
-                Toast.makeText(getActivity(),MoviesData.get(position).getOriginal_title() , Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra("Title", MoviesData.get(position).getOriginal_title())
-                        .putExtra("Poster", MoviesData.get(position).getPoster_attr())
-                        .putExtra("Over", MoviesData.get(position).getOverview())
-                        .putExtra("Rate", MoviesData.get(position).getVote_average())
-                        .putExtra("Date", MoviesData.get(position).getRelease_date())
-                        .putExtra("Movie_ID",MoviesData.get(position).getMovie_ID());
+                Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                if (cursor != null) {
 
-                startActivity(intent);
+                    Toast.makeText(getActivity(), cursor.getString(COL_TITLE), Toast.LENGTH_SHORT).show();
+                    ((Callback) getActivity())
+                            .onItemSelected(MoviesContract.MoviesEntry.buildMovieUri(Long.valueOf(cursor.getString(COL_MOVIE_ID))
+
+                            ));
+                    mPosition = position;
+                }
+
+
             }
         });
 
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
 
+            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
 
 
         return rootView;
     }
-    private void updateMovies()
-    {
-//        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-//        NetworkInfo ni = cm.getActiveNetworkInfo();
-//        if (ni==null)
-//        {
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+
+        if (mPosition != GridView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, mPosition);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    private void updateMovies() {
+        getActivity().getContentResolver().delete(MoviesContract.MoviesEntry.CONTENT_URI, null, null);
+        ContentValues MovieValue = new ContentValues();
+        MovieValue.put(MoviesContract.MoviesEntry.COLUMN_SORT_INDEX, 0);
+        getActivity().getContentResolver().update(MoviesContract.MoviesEntry.CONTENT_URI, MovieValue, null, null);
+        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni = cm.getActiveNetworkInfo();
+        if (ni == null) {
+//            Snackbar snackbar = Snackbar
+//                    .make(coordinatorLayout, "Welcome to AndroidHive", Snackbar.LENGTH_LONG);
 //
-//        }
-//        else {
-//            FetchMoviesTask weatherTask = new FetchMoviesTask();
-//            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-//            String sort = prefs.getString(getString(R.string.pref_sort_key),
-//                    getString(R.string.pref_sort_pop));
-//            weatherTask.execute(sort);
-//        }
+//            snackbar.show();
 
-        FetchMoviesTask weatherTask = new FetchMoviesTask();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sort = prefs.getString(getString(R.string.pref_sort_key),
-                getString(R.string.pref_sort_pop));
-        weatherTask.execute(sort);
-
+        } else {
+            FetchMoviesTask weatherTask = new FetchMoviesTask(getActivity());
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String sort = prefs.getString(getString(R.string.pref_sort_key),
+                    getString(R.string.pref_sort_pop));
+            weatherTask.execute(sort);
+        }
     }
 
 
     @Override
     public void onStart() {
+
         super.onStart();
+    }
+
+    void onOrderChanged() {
         updateMovies();
+        mPosition = GridView.INVALID_POSITION;
+        getLoaderManager().restartLoader(MOVIES_LOADER, null, this);
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return null;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sort = prefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_pop));
+        if (sort.equals("@strings/pref_sort_Favorite")) {
+            Uri GetAllMoviesUri = MoviesContract.MoviesEntry.CONTENT_URI;
+            return new CursorLoader(getActivity(), GetAllMoviesUri, MOVIES_COLUMNS, MoviesProvider.sItemFavouriteSelection, new String[]{"1"}, MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " ASC");
+        }
+
+        Uri GetAllMoviesUri = MoviesContract.MoviesEntry.CONTENT_URI;
+        return new CursorLoader(getActivity(), GetAllMoviesUri, MOVIES_COLUMNS, null, null, MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " ASC");
+
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 
+        PicassoCAdapter.swapCursor(data);
+        gridView.setAdapter(PicassoCAdapter);
+
+        if (mPosition != GridView.INVALID_POSITION) {
+
+            gridView.smoothScrollToPosition(mPosition);
+//            gridView.setSelection(mPosition);
+        }
+
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-
+        PicassoCAdapter.swapCursor(null);
     }
 
 
-    public class FetchMoviesTask extends AsyncTask<String, Void, Movie[]> {
-
-
-        private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
-
-        private Movie[] getDataFromJson(String MovieJsonStr)
-                throws JSONException {
-
-
-            JSONObject MoviesJson = new JSONObject(MovieJsonStr);
-            JSONArray ResultArray = MoviesJson.getJSONArray("results");
-
-            Movie[] resultTempObject = new Movie[ResultArray.length()];
-            int s=0;
-
-            for (int i = 0; i < ResultArray.length(); i++) {
-
-                JSONObject movieTemp = ResultArray.getJSONObject(i);
-                String original_title = movieTemp.getString("original_title");
-                String poster_attr = movieTemp.getString("poster_path");
-                String overview = movieTemp.getString("overview");
-                String vote_average = Double.toString(movieTemp.getDouble("vote_average"));
-                String release_date = movieTemp.getString("release_date");
-                String movie_id=movieTemp.getString("id");
-
-                if (!poster_attr.equals("null"))
-                {
-                    resultTempObject[s] = new Movie(original_title, poster_attr, overview, vote_average, release_date,movie_id);
-                    s++;
-                }
-
-//                ContentValues MovieValue = new ContentValues();
-//
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_TITLE,original_title);
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_POSTER_ATTR,poster_attr);
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_OVERVIEW,overview);
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,movieTemp.getDouble("vote_average"));
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE,release_date);
-//                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID,movieTemp.getDouble("id"));
-//
-//                Uri ins =getActivity().getContentResolver().insert(MoviesContract.MoviesEntry.CONTENT_URI,MovieValue);
-//                Log.v("inserted", " URI " + ins.toString());
-            }
-            Movie[] resultObject = new Movie[s];
-            for (int i = 0; i < s; i++) {
-                resultObject[i] = new Movie(resultTempObject[i].getOriginal_title()
-                        ,resultTempObject[i].getPoster_attr()
-                        ,resultTempObject[i].getOverview()
-                        ,resultTempObject[i].getVote_average()
-                        ,resultTempObject[i].getRelease_date()
-                        ,resultTempObject[i].getMovie_ID());
-
-            }
-
-
-            return resultObject;
-
-        }
-
-        @Override
-        protected Movie[] doInBackground(String... strings) {
-
-            if (strings.length == 0) {
-                return null;
-            }
-
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-            String MovieJsonStr = null;
-
-
-           // String MovieUrl =
-           // "http://api.themoviedb.org/3/discover/movie?include_adult=no&sort_by=" + strings[0] + ".desc&api_key=9d5b10665b26ce8aadae42604e92f82a";
-
-            String SortingQuery="sort_by";
-            String AdultQuery="include_adult";
-            String ApiKeyQuery="api_key";
-
-
-
-            String MyKey="9d5b10665b26ce8aadae42604e92f82a";
-
-
-            Uri builtUri = Uri.parse("http://api.themoviedb.org/3/discover/movie?").buildUpon()
-                    .appendQueryParameter(SortingQuery, strings[0])
-                    .appendQueryParameter(AdultQuery, "no")
-                    .appendQueryParameter(ApiKeyQuery, MyKey)
-                    .build();
-
-            try {
-
-                URL url = new URL(builtUri.toString());
-                Log.v(LOG_TAG, "Built URI " + builtUri.toString());
-
-
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    return null;
-                }
-                MovieJsonStr = buffer.toString();
-                Log.v(LOG_TAG, "Movie string: " + MovieJsonStr);
-
-
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Error ", e);
-                return null;
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e(LOG_TAG, "Error closing stream", e);
-                    }
-                }
-            }
-
-            try {
-                return getDataFromJson(MovieJsonStr);
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, e.getMessage(), e);
-                e.printStackTrace();
-            }
-
-            // This will only happen if there was an error getting or parsing the forecast.
-            return null;
-        }
-
-
-        @Override
-        protected void onPostExecute(Movie[] movies) {
-
-
-            if (movies != null) {
-
-
-                MoviesData.clear();
-                adapter.clear();
-                for(Movie movieTemp : movies) {
-                    adapter.add("http://image.tmdb.org/t/p/w185/"+movieTemp.getPoster_attr());
-                    MoviesData.add(movieTemp);
-                }
-
-            }
-
-
-        }
-    }
 
 
 }

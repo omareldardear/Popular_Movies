@@ -10,8 +10,10 @@
     <string name="title_Sort">Sort By</string>
     <string name="pref_sort_label_popularity">Most Popular</string>
     <string name="pref_sort_label_rate">Highest Rated</string>
+    <string name="pref_sort_label_Favorite">Favorites</string>
     <string name="pref_sort_key" translatable="false">sorts</string>
     <string name="pref_sort_pop" translatable="false">popularity.desc</string>
     <string name="pref_sort_rate" translatable="false">vote_average.desc</string>
+    <string name="pref_sort_Favorite">Favorites</string>
     <string name="title_activity_settings">SettingsActivity</string>
 </resources>
