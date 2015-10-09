@@ -65,6 +65,13 @@ public class MoviesProvider extends ContentProvider {
     public static final String sItemFavouriteSelection =
             MoviesContract.MoviesEntry.COLUMN_FAVOURITE + " = ? ";
 
+    public static final String sItemOrderSelection =
+            MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " >= ? ";
+
+    public static final String sItemFavouriteAndOrderSelection =
+            MoviesContract.MoviesEntry.COLUMN_FAVOURITE + " = ? AND " +
+                    MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " >= ? ";
+
 
     static UriMatcher buildUriMatcher() {
 
@@ -252,9 +259,9 @@ public class MoviesProvider extends ContentProvider {
         if (null == selection) selection = "1";
         switch (match) {
             case MOVIES:
-                selectionArgs=new String[]{"0"};
+
                 rowsDeleted = db.delete(
-                        MoviesContract.MoviesEntry.TABLE_NAME, sItemFavouriteSelection, selectionArgs);
+                        MoviesContract.MoviesEntry.TABLE_NAME, selection, selectionArgs);
                 break;
             case MOVIE_WITH_ID:
                 selectionArgs = new String[]{Long.toString(MoviesContract.MoviesEntry.getMovieIDFromUri(uri))};
@@ -269,7 +276,6 @@ public class MoviesProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return rowsDeleted;
-
 
     }
 

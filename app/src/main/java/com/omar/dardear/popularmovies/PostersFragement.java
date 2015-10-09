@@ -1,7 +1,7 @@
 package com.omar.dardear.popularmovies;
 
-import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
@@ -10,6 +10,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.preference.PreferenceManager;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -37,6 +39,7 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
     GridView gridView;
     private static final String LIST_STATE = "listState";
     private Parcelable mListState = null;
+    CoordinatorLayout coordinatorLayout;
 
     private static final String SELECTED_KEY = "selected_position";
 
@@ -80,7 +83,7 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        updateMovies();
+
 
     }
 
@@ -93,7 +96,18 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            updateMovies();
+            ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo ni = cm.getActiveNetworkInfo();
+            if (ni == null) {
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "NO INTERNET CONNECTION", Snackbar.LENGTH_LONG);
+
+                snackbar.show();
+
+
+            } else {
+                updateMovies();
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -110,6 +124,8 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
+        coordinatorLayout = (CoordinatorLayout) rootView.findViewById(R.id
+                .coordinatorLayout);
 
         PicassoCAdapter = new PicassoCursorAdapter(getActivity(), null, 0);
 
@@ -153,33 +169,25 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
     }
 
     private void updateMovies() {
-        getActivity().getContentResolver().delete(MoviesContract.MoviesEntry.CONTENT_URI, null, null);
-        ContentValues MovieValue = new ContentValues();
-        MovieValue.put(MoviesContract.MoviesEntry.COLUMN_SORT_INDEX, 0);
-        getActivity().getContentResolver().update(MoviesContract.MoviesEntry.CONTENT_URI, MovieValue, null, null);
-        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
-        if (ni == null) {
-//            Snackbar snackbar = Snackbar
-//                    .make(coordinatorLayout, "Welcome to AndroidHive", Snackbar.LENGTH_LONG);
-//
-//            snackbar.show();
+        Utility.ResetMovieTable(getActivity());
+        String Order = Utility.getOrder(getActivity());
+        if (!Order.equals(getString(R.string.pref_sort_Favorite))) {
+            ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo ni = cm.getActiveNetworkInfo();
+            if (ni == null) {
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "NO INTERNET CONNECTION", Snackbar.LENGTH_LONG);
+                snackbar.show();
+            } else {
+                Intent i = new Intent(getActivity(), MovieService.class);
+                i.putExtra(MovieService.Order_Query, Order);
+                getActivity().startService(i);
+            }
 
-        } else {
-            FetchMoviesTask weatherTask = new FetchMoviesTask(getActivity());
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String sort = prefs.getString(getString(R.string.pref_sort_key),
-                    getString(R.string.pref_sort_pop));
-            weatherTask.execute(sort);
         }
+
     }
 
-
-    @Override
-    public void onStart() {
-
-        super.onStart();
-    }
 
     void onOrderChanged() {
         updateMovies();
@@ -192,13 +200,23 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String sort = prefs.getString(getString(R.string.pref_sort_key),
                 getString(R.string.pref_sort_pop));
-        if (sort.equals("@strings/pref_sort_Favorite")) {
+        if (sort.equals(getString(R.string.pref_sort_Favorite))) {
             Uri GetAllMoviesUri = MoviesContract.MoviesEntry.CONTENT_URI;
-            return new CursorLoader(getActivity(), GetAllMoviesUri, MOVIES_COLUMNS, MoviesProvider.sItemFavouriteSelection, new String[]{"1"}, MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " ASC");
+
+            return new CursorLoader(getActivity(), GetAllMoviesUri, MOVIES_COLUMNS,
+                    MoviesProvider.sItemFavouriteAndOrderSelection, new String[]{"1", "0"}, null);
+
+
+        } else {
+            Uri GetAllMoviesUri = MoviesContract.MoviesEntry.CONTENT_URI;
+
+
+            return new CursorLoader(getActivity(), GetAllMoviesUri,
+                    MOVIES_COLUMNS, MoviesProvider.sItemOrderSelection, new String[]{"1"},
+                    MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " ASC");
+
         }
 
-        Uri GetAllMoviesUri = MoviesContract.MoviesEntry.CONTENT_URI;
-        return new CursorLoader(getActivity(), GetAllMoviesUri, MOVIES_COLUMNS, null, null, MoviesContract.MoviesEntry.COLUMN_SORT_INDEX + " ASC");
 
     }
 
@@ -220,8 +238,6 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
     public void onLoaderReset(Loader<Cursor> loader) {
         PicassoCAdapter.swapCursor(null);
     }
-
-
 
 
 }
