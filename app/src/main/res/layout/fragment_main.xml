@@ -6,18 +6,21 @@
     android:background="#000000"
     tools:context=".MainActivity$PlaceholderFragment">
 
+    <android.support.v4.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/swipe_refresh_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
 
-    <GridView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:columnWidth="121dp"
-        android:id="@+id/GridView_Imgs"
-        android:numColumns="auto_fit"
-        android:background="#000000"
-        />
+        <GridView
+            android:id="@+id/GridView_Imgs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#000000"
+            android:columnWidth="121dp"
+            android:numColumns="auto_fit" />
 
 
-
+    </android.support.v4.widget.SwipeRefreshLayout>
 
 </android.support.design.widget.CoordinatorLayout>

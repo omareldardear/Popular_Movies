@@ -8,7 +8,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
@@ -16,6 +15,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -32,14 +32,14 @@ import com.omar.dardear.popularmovies.data.MoviesProvider;
 /**
  * Created by Omar on 9/5/2015.
  */
-public class PostersFragement extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+public class PostersFragement extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener {
 
 
     PicassoCursorAdapter PicassoCAdapter;
     GridView gridView;
-    private static final String LIST_STATE = "listState";
-    private Parcelable mListState = null;
+
     CoordinatorLayout coordinatorLayout;
+    SwipeRefreshLayout swipeRefreshLayout;
 
     private static final String SELECTED_KEY = "selected_position";
 
@@ -73,6 +73,7 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
 
     public PostersFragement() {
     }
+
 
     public interface Callback {
 
@@ -126,10 +127,11 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
 
         coordinatorLayout = (CoordinatorLayout) rootView.findViewById(R.id
                 .coordinatorLayout);
+        swipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_refresh_layout);
 
-        PicassoCAdapter = new PicassoCursorAdapter(getActivity(), null, 0);
 
         gridView = (GridView) rootView.findViewById(R.id.GridView_Imgs);
+        PicassoCAdapter = new PicassoCursorAdapter(getActivity(), null, 0);
         gridView.setAdapter(PicassoCAdapter);
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -149,6 +151,28 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
 
             }
         });
+        swipeRefreshLayout.setOnRefreshListener(this);
+        swipeRefreshLayout.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        swipeRefreshLayout.setRefreshing(true);
+                                        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+                                        NetworkInfo ni = cm.getActiveNetworkInfo();
+                                        if (ni == null) {
+                                            Snackbar snackbar = Snackbar
+                                                    .make(coordinatorLayout, "NO INTERNET CONNECTION", Snackbar.LENGTH_LONG);
+
+                                            snackbar.show();
+
+
+                                        } else {
+                                            updateMovies();
+                                        }
+
+                                        swipeRefreshLayout.setRefreshing(false);
+                                    }
+                                }
+        );
 
         if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
 
@@ -158,6 +182,25 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
 
         return rootView;
     }
+
+    @Override
+    public void onRefresh() {
+        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni = cm.getActiveNetworkInfo();
+        if (ni == null) {
+            Snackbar snackbar = Snackbar
+                    .make(coordinatorLayout, "NO INTERNET CONNECTION", Snackbar.LENGTH_LONG);
+
+            snackbar.show();
+
+
+        } else {
+            updateMovies();
+        }
+        swipeRefreshLayout.setRefreshing(false);
+
+    }
+
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -193,6 +236,9 @@ public class PostersFragement extends Fragment implements LoaderManager.LoaderCa
         updateMovies();
         mPosition = GridView.INVALID_POSITION;
         getLoaderManager().restartLoader(MOVIES_LOADER, null, this);
+        ((Callback) getActivity())
+                .onItemSelected(null);
+
     }
 
     @Override

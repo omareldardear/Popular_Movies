@@ -108,13 +108,6 @@ public class DetailFragement extends Fragment implements LoaderManager.LoaderCal
     public void onStart() {
         super.onStart();
 
-        FetchDetailsTask DetailTask = new FetchDetailsTask();
-        DetailTask.execute(ID);
-        FetchTrailersTask TrailersTask = new FetchTrailersTask();
-        TrailersTask.execute(ID);
-        FetchReviewsTask ReviewTask = new FetchReviewsTask();
-        ReviewTask.execute(ID);
-
 
     }
 
@@ -188,19 +181,28 @@ public class DetailFragement extends Fragment implements LoaderManager.LoaderCal
             ReviewsList.setExpanded(true);
             ReviewsList.setAdapter(ReviewsAdapter);
 
+            FetchDetailsTask DetailTask = new FetchDetailsTask();
+            DetailTask.execute(ID);
+            FetchTrailersTask TrailersTask = new FetchTrailersTask();
+            TrailersTask.execute(ID);
+            FetchReviewsTask ReviewTask = new FetchReviewsTask();
+            ReviewTask.execute(ID);
+
 
             return rootView;
         }
 
         return null;
     }
-    void onOrderChanged(String newOrder ) {
+
+    void onOrderChanged(String newOrder) {
         Uri uri = mUri;
         if (null != uri) {
-            mUri=null;
+            mUri = null;
             getLoaderManager().restartLoader(DETAIL_LOADER, null, this);
         }
     }
+
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         if (null != mUri) {
@@ -655,8 +657,12 @@ public class DetailFragement extends Fragment implements LoaderManager.LoaderCal
 
                 MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RUN_TIME, runTime[0]);
 
+
+                MovieValue.put(MoviesContract.MoviesEntry.COLUMN_RUN_TIME, runTime[0]);
                 int updated = getActivity().getContentResolver().update(MoviesContract.MoviesEntry.buildMovieUri(Long.valueOf(ID)), MovieValue, null, null);
                 Log.v("updateeee", " " + updated);
+
+
             }
 
         }

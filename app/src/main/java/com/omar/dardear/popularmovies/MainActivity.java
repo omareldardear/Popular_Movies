@@ -72,22 +72,34 @@ public class MainActivity extends ActionBarActivity implements PostersFragement.
     @Override
     public void onItemSelected(Uri dateUri) {
         if (mTwoPane) {
-            // In two-pane mode, show the detail view in this activity by
-            // adding or replacing the detail fragment using a
-            // fragment transaction.
-            Bundle args = new Bundle();
-            args.putParcelable(DetailFragement.DETAIL_URI, dateUri);
+            if (dateUri != null) {
+                Bundle args = new Bundle();
+                args.putParcelable(DetailFragement.DETAIL_URI, dateUri);
 
-            DetailFragement fragment = new DetailFragement();
-            fragment.setArguments(args);
+                DetailFragement fragment = new DetailFragement();
+                fragment.setArguments(args);
 
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.movie_detail_container, fragment, DETAILFRAGMENT_TAG)
-                    .commit();
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.movie_detail_container, fragment, DETAILFRAGMENT_TAG)
+                        .commit();
+
+            } else {
+                DetailFragement fragment = new DetailFragement();
+                fragment.setArguments(null);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.movie_detail_container, fragment, DETAILFRAGMENT_TAG)
+                        .commit();
+
+            }
+
+
         } else {
-            Intent intent = new Intent(this, DetailActivity.class)
-                    .setData(dateUri);
-            startActivity(intent);
+            if (dateUri != null) {
+                Intent intent = new Intent(this, DetailActivity.class)
+                        .setData(dateUri);
+                startActivity(intent);
+            }
+
         }
     }
 
@@ -97,8 +109,7 @@ public class MainActivity extends ActionBarActivity implements PostersFragement.
         SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         String sort = mPrefs.getString(getString(R.string.pref_sort_key),
                 getString(R.string.pref_sort_pop));
-        if (!sort.equals(mSort))
-        {
+        if (!sort.equals(mSort)) {
 
             PostersFragement PF = (PostersFragement) getSupportFragmentManager().findFragmentById(R.id.fragment_poster);
             if (PF != null) {
